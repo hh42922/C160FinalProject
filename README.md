@@ -9,7 +9,7 @@ It also includes a semi-synthetic data simulation for methodological validation 
 
 ### Data Access and Requirements
 
-The data used in this project comes from the MIMIC-IV dataset, which contains restricted electronic health records from patients at the Beth 
+The data that was used in this project comes from the MIMIC-IV dataset, which contains restricted electronic health records from patients at the Beth 
 Israel Deaconess Medical Center. Due to strict data usage agreements and HIPAA privacy regulations, the raw CSV files are not included in this 
 repository. In order to reproduce this analysis, researchers must independently obtain access to MIMIC-IV. This requires completing the required human 
 subjects research training course through CITI, creating an account on PhysioNet, then signing the data use agreement for the MIMIC-IV 
