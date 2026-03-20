@@ -5,6 +5,7 @@
 This repository contains the R script and methods needed to reproduce a causal mediation and variation analysis of the obesity 
 paradox in intensive care units. The analysis investigates whether the protective effect of obesity on ICU mortality is a direct 
 physiological mechanism or an indirect result of clinical interventions, specifically invasive mechanical ventilation.
+It also includes a semi-synthetic data simulation for methodological validation and an E-value sensitivity analysis to assess the validity of the findings against unmeasured confounding.
 
 ### Data Access and Requirements
 
@@ -22,26 +23,11 @@ and procedureevents.csv.gz. Place all five of these compressed files directly in
 
 ### Software and Packages
 
-This analysis requires R and RStudio to run. The script relies on three specific packages for data manipulation and causal modeling. 
-You must install the dplyr package for data wrangling, the readr package for loading the compressed datasets, and the mediation package 
-for computing the natural direct and indirect effects.
+This analysis requires R and RStudio to run. The script relies on four specific packages for data manipulation and causal modeling. You must install the dplyr package for data wrangling, the readr package for loading the compressed datasets, the mediation package for computing the natural direct and indirect effects, and the EValue package for conducting the sensitivity analysis.
 
 ### Running Analysis
 
-Open the analysis script in RStudio. The code is written as a single, continuous pipeline that loads the data, defines the cohort, 
-handles missing values, and runs the generalized linear models. Execute the entire script at once. The script will output three separate 
-mediation summaries to the console.
-
-The first output is the primary cohort analysis, which evaluates the overall intensive care population. The script then stratifies 
-the data to perform a variation analysis based on age. The second output evaluates the non-elderly cohort of patients under age 65. 
-The third output evaluates the elderly cohort of patients aged 65 and older.
-
-### Expected Results
-
-If the data files are positioned correctly, the script will perfectly reproduce the numbers from the original study. 
-The primary cohort will result in exactly 44,623 patients, showing a total mortality reduction effect of 5.78 percent. 
-The non-elderly variation analysis will result in 21,568 patients and show a stronger total effect of 7.18 percent. The elderly variation analysis will result in 23,055 patients and show a degraded total effect of 4.96 percent. Across all three runs, the average causal mediation effect will remain near 0.30 percent, confirming that the survival
-benefit is a direct biological mechanism rather than an indirect clinical artifact.
+Open the analysis script in RStudio. The code is written as a single, continuous pipeline that loads the data, defines the cohort, handles missing values, and runs the generalized linear models. Execute the entire script at once. The script will output three separate mediation summaries to the console, followed by the semi-synthetic simulation results and the calculated E-value.
 
 #### References and Licensing
 Johnson, A., Bulgarelli, L., Pollard, T., Horng, S., Celi, L. A., & Mark, R. (2023). MIMIC-IV (version 2.2). PhysioNet. RRID:SCR_007345. https://doi.org/10.13026/6mm1-ek67
