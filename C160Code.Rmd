@@ -1,0 +1,87 @@
+---
+title: "C160FINAL"
+author: "Brandon Kim"
+date: "2026-03-10"
+output: html_document
+---
+
+```{r}
+library(dplyr)
+library(readr)
+library(mediation)
+
+patients <- read_csv("patients.csv.gz")
+admissions <- read_csv("admissions.csv.gz")
+icustays <- read_csv("icustays.csv.gz")
+omr <- read_csv("omr.csv.gz")
+procedures <- read_csv("procedureevents.csv.gz")
+
+cohort <- icustays %>% inner_join(admissions, by = c("subject_id", "hadm_id")) %>% inner_join(patients, by = "subject_id") %>% mutate(mortality = ifelse(!is.na(dod), 1, 0))
+
+bmi_data <- omr %>% filter(result_name == "BMI (kg/m2)") %>% mutate(bmi = as.numeric(result_value)) %>% group_by(subject_id) %>% summarize(mean_bmi = mean(bmi, na.rm = TRUE)) %>% mutate(obese = ifelse(mean_bmi >= 30, 1, 0))
+
+cohort <- cohort %>% left_join(bmi_data, by = "subject_id")
+
+vent_data <- procedures %>% filter(itemid == 225792) %>% dplyr::select(subject_id, stay_id) %>% distinct() %>% mutate(ventilation = 1)
+
+cohort <- cohort %>% left_join(vent_data, by = c("subject_id", "stay_id")) %>% mutate(ventilation = ifelse(is.na(ventilation), 0, 1))
+
+final_data <- cohort %>% select(obese, mortality, ventilation, anchor_age, gender) %>% mutate(gender_num = ifelse(gender == "M", 1, 0), obese = as.numeric(obese), mortality = as.numeric(mortality), ventilation = as.numeric(ventilation), anchor_age = as.numeric(anchor_age)) %>% select(-gender) %>% na.omit() %>% as.data.frame()
+
+med_model <- glm(ventilation ~ obese + anchor_age + gender_num, family = binomial(link = "logit"), data = final_data)
+
+out_model <- glm(mortality ~ obese + ventilation + anchor_age + gender_num, family = binomial(link = "logit"), data = final_data)
+
+med_out <- mediate(med_model, out_model, treat = "obese", mediator = "ventilation", boot = TRUE, sims = 100)
+
+summary(med_out)
+```
+```{r}
+elderly_data <- final_data %>% filter(anchor_age >= 65)
+non_elderly_data <- final_data %>% filter(anchor_age < 65)
+
+elderly_med_model <- glm(ventilation ~ obese + gender_num, family = binomial(link = "logit"), data = elderly_data)
+elderly_out_model <- glm(mortality ~ obese + ventilation + gender_num, family = binomial(link = "logit"), data = elderly_data)
+elderly_med_out <- mediate(elderly_med_model, elderly_out_model, treat = "obese", mediator = "ventilation", boot = TRUE, sims = 100)
+
+non_elderly_med_model <- glm(ventilation ~ obese + gender_num, family = binomial(link = "logit"), data = non_elderly_data)
+non_elderly_out_model <- glm(mortality ~ obese + ventilation + gender_num, family = binomial(link = "logit"), data = non_elderly_data)
+non_elderly_med_out <- mediate(non_elderly_med_model, non_elderly_out_model, treat = "obese", mediator = "ventilation", boot = TRUE, sims = 100)
+
+summary(elderly_med_out)
+summary(non_elderly_med_out)
+```
+```{r}
+install.packages("EValue")
+library(EValue)
+
+# Semi-Synthetic Data Simulation
+set.seed(160)
+n_syn <- 10000
+age_syn <- rnorm(n_syn, 65, 15)
+gender_syn <- rbinom(n_syn, 1, 0.5)
+
+z_effect <- (age_syn - 65)/15 + gender_syn
+
+prob_obese <- plogis(-1 + 0.2 * z_effect)
+obese_syn <- rbinom(n_syn, 1, prob_obese)
+
+prob_vent <- plogis(-2 + 0.5 * obese_syn + 0.3 * z_effect)
+vent_syn <- rbinom(n_syn, 1, prob_vent)
+
+prob_mortality <- plogis(-1 - 0.8 * obese_syn + 0.4 * vent_syn + 0.5 * z_effect)
+mortality_syn <- rbinom(n_syn, 1, prob_mortality)
+
+syn_data <- data.frame(obese = obese_syn, ventilation = vent_syn, mortality = mortality_syn, anchor_age = age_syn, gender_num = gender_syn)
+
+syn_med_model <- glm(ventilation ~ obese + anchor_age + gender_num, family = binomial(link = "logit"), data = syn_data)
+syn_out_model <- glm(mortality ~ obese + ventilation + anchor_age + gender_num, family = binomial(link = "logit"), data = syn_data)
+syn_med_out <- mediate(syn_med_model, syn_out_model, treat = "obese", mediator = "ventilation", boot = TRUE, sims = 100)
+
+summary(syn_med_out)
+
+# E Value CALCULATIONS
+obesity_odds_ratio <- exp(coef(out_model)["obese"])
+evalues.OR(obesity_odds_ratio, rare = TRUE)
+```
+
